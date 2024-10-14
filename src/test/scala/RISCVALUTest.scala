@@ -11,7 +11,7 @@ import scala.math._
 class RISCVALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers {
 
   val IT_Max = 1000 //max number of random tests
-  val max_input_value:Int = math.pow(2.toDouble, 32).toInt
+  val max_input_value:Long = math.pow(2.toDouble,64).toLong
 
    behavior of "RiscV ALU"
 
@@ -20,80 +20,34 @@ class RISCVALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers 
 test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
     for (i <- 0 until IT_Max) {
-  val a = Random.nextInt(max_input_value)
-  val b = Random.nextInt(max_input_value)
+  val a = Random.nextLong(max_input_value)
+  val b = Random.nextLong(max_input_value)
 
-  // Test ADD32
-  val expected_ADD32result = (a + b) % max_input_value
+  // Test ADD_UW
+  val index = a & 0xFFFFFFFFL
+  val expected_ADDUWresult = (index + b) % max_input_value
+  println(s"ADD_UW Test: a = $a, b = $b, index = $index, expected result = $expected_ADDUWresult")
+
   dut.io.operand_A.poke(a.U)
   dut.io.operand_B.poke(b.U)
-  dut.io.ALU_SEL.poke(AluOP.ADD32)
+  dut.io.ALU_SEL.poke(AluOP.ADD_UW)
 
   dut.clock.step()
 
-  dut.io.result.expect(expected_ADD32result.asSInt)
+  dut.io.result.expect(expected_ADDUWresult.asUInt)
 
-  // Test SUB32
-  val expected_SUB32result = (a - b) % max_input_value
-  dut.io.operand_A.poke(a.U)
-  dut.io.operand_B.poke(b.U)
-  dut.io.ALU_SEL.poke(AluOP.SUB32)
-
-  dut.clock.step()
-
-  dut.io.result.expect(expected_SUB32result.asSInt)
-
-  // Test ADD16
-   val lower16_a = a & 0xFFFF
-   val lower16_b = b & 0xFFFF
-   val upper16_a = (a >> 16) & 0xFFFF
-   val upper16_b = (b >> 16) & 0xFFFF   
-   val lower16_ADDresult = (lower16_a + lower16_b) & 0xFFFF
-   val upper16_ADDresult = (upper16_a + upper16_b) & 0xFFFF
-   val expected_ADD16result = (upper16_ADDresult << 16) | lower16_ADDresult   
-   dut.io.operand_A.poke(a.U)
-   dut.io.operand_B.poke(b.U)
-   dut.io.ALU_SEL.poke(AluOP.ADD16)
-
-   dut.clock.step(2)
-
-   dut.io.result.expect(expected_ADD16result.asSInt)
-
-   // Test SUB16 
-   val lower16_SUBresult = (lower16_a - lower16_b) & 0xFFFF
-   val upper16_SUBresult = (upper16_a - upper16_b) & 0xFFFF
-   val expected_SUB16result = (upper16_SUBresult << 16) | lower16_SUBresult   
-   dut.io.operand_A.poke(a.U)
-   dut.io.operand_B.poke(b.U)
-   dut.io.ALU_SEL.poke(AluOP.SUB16)
-
-   dut.clock.step(2)
-
-   dut.io.result.expect(expected_SUB16result.asSInt)
-
-   // Test ADSUB16 
-   val lower16_ADSUBresult = (lower16_a - upper16_b) & 0xFFFF
-   val upper16_ADSUBresult = (upper16_a + lower16_b) & 0xFFFF
-   val expected_ADSUB16result = (upper16_ADSUBresult << 16) | lower16_ADSUBresult   
-   dut.io.operand_A.poke(a.U)
-   dut.io.operand_B.poke(b.U)
-   dut.io.ALU_SEL.poke(AluOP.ADSUBC16)
-
-   dut.clock.step(2)
-
-   dut.io.result.expect(expected_ADSUB16result.asSInt)
-
-   // Test SUBAD16 
-   val lower16_SUBADresult = (lower16_a + upper16_b) & 0xFFFF
-   val upper16_SUBADresult = (upper16_a - lower16_b) & 0xFFFF
-   val expected_SUBAD16result = (upper16_SUBADresult << 16) | lower16_SUBADresult   
-   dut.io.operand_A.poke(a.U)
-   dut.io.operand_B.poke(b.U)
-   dut.io.ALU_SEL.poke(AluOP.SUBADC16)
-
-   dut.clock.step(2)
-
-   dut.io.result.expect(expected_SUBAD16result.asSInt)
+  // Test SH1ADD
+  //val shiftl = (a << 1) & 0xFFFFFFFFFFFFFFFFL  // Mask to retain only lower 64 bits
+  //val expected_SH1ADDresult = (shiftl + b) % max_input_value
+  //println(s"SH1ADD Test: a = $a, b = $b, shiftl = $shiftl, expected result = $expected_SH1ADDresult")
+//
+  //dut.io.operand_A.poke(a.U)
+  //dut.io.operand_B.poke(b.U)
+  //dut.io.ALU_SEL.poke(AluOP.SH1ADD)
+//
+  //dut.clock.step()
+//
+  //dut.io.result.expect(expected_SH1ADDresult.asUInt)
 }
 }
 }

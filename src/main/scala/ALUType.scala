@@ -5,7 +5,7 @@ package ALUType {
 
   object AluOP extends ChiselEnum {
 //    type AluOP = Value
-    val ADD32, SUB32, ADD16, SUB16, ADSUBC16, SUBADC16 = Value
+    val ADD_UW = Value
   }
 
 }

@@ -5,171 +5,83 @@ import chisel3.util._
 import ALUType._
 import scala.annotation.switch
 
-//class Adder16bits extends Module {
-  //val io = IO(new Bundle {
-  //  val A_in = Input(UInt(16.W))
-  //  val B_in = Input(UInt(16.W))
-  //  val carry_in = Input(UInt(1.W))
-  //  val sum = Output(UInt(16.W))
-  //  val carry_out = Output(UInt(1.W))
-  //})
+// Implementing n bit shift left
+//class ShiftLeft(N: Int) extends Module {
+//  val io = IO(new Bundle {
+//    val A_in = Input(UInt(N.W))
+//    val bits = Input(UInt(log2Ceil(N).W))
+//    val A_out = Output(UInt(N.W))
+//  })
 //
-  //  val sum  = io.A_in ^ io.B_in ^ io.carry_in
-  //  val cout = (io.A_in & io.B_in) | (io.A_in & io.carry_in) | (io.B_in & io.carry_in)
+//    val A_temp  = (io.A_in << io.bits).asUInt
 //
-  //  io.sum  := sum
-  //  io.carry_out := cout
+//    io.A_out  := A_temp(N-1, 0)
 //}
-
-// Implementing n bit twos complement block for subtractor
-class TwosComplement(N: Int) extends Module {
-  val io = IO(new Bundle {
-    val B_in = Input(UInt(N.W))
-    val B_out = Output(UInt(N.W))
-  })
-
-    val B_temp  = ~(io.B_in ) + 1.U
-
-    io.B_out  := B_temp
-}
 
 // Implementing n bit adder block 
 class Adder(N: Int) extends Module {
   val io = IO(new Bundle {
     val A_in = Input(UInt(N.W))
     val B_in = Input(UInt(N.W))
-    val sum = Output(SInt(N.W))
+    val sum = Output(UInt(N.W))
   })
 
-    val sum_temp  = (io.A_in + io.B_in).asSInt
+    val sum_temp  = (io.A_in + io.B_in).asUInt
 
     io.sum  := sum_temp
 }
 
 class PExtALU extends Module {
   val io = IO(new Bundle {
-    val operand_A = Input(UInt(32.W))
-    val operand_B = Input(UInt(32.W))
+    val operand_A = Input(UInt(64.W))
+    val operand_B = Input(UInt(64.W))
     val ALU_SEL = Input(AluOP())
-    val result = Output(SInt(32.W))
+    val result = Output(UInt(64.W))
   })
 
-  val A_32 = io.operand_A
-  val B_32 = io.operand_B
+  val index = io.operand_A(31,0).asUInt
+  val zero_extended_index = Cat(0.U(32.W), index)
+  val base = io.operand_B
 
-  val Aup_16 = io.operand_A(31,16)
-  val Alow_16 = io.operand_A(15,0)
-  val Bup_16 = io.operand_B(31,16)
-  val Blow_16 = io.operand_B(15,0)
+  //val A = io.operand_A
 
-  val result_32 = Reg(SInt(32.W))
-  val resultup_16 = Reg(SInt(16.W))
-  val resultlow_16 = Reg(SInt(16.W))       
+  val result = Reg(UInt(64.W))
 
-  result_32 := 0.S
-  resultup_16 := 0.S
-  resultlow_16 := 0.S
+  result := 0.U
 
-  val two_32 = Module(new TwosComplement(32))
-  val twolow_16 = Module(new TwosComplement(16))
-  val twoup_16 = Module(new TwosComplement(16))
+  //val Shift = Module(new ShiftLeft(64))
 
-  val Add = Module(new Adder(32))
-  val Addlow_16 = Module(new Adder(16))
-  val Addup_16 = Module(new Adder(16))
+  val Add = Module(new Adder(64))
 
    // Initialize all module inputs to avoid uninitialized reference errors
-  two_32.io.B_in := 0.U
-  twolow_16.io.B_in := 0.U
-  twoup_16.io.B_in := 0.U
+ 
+  //Shift.io.A_in := 0.U
+  //Shift.io.bits := 0.U
+
   Add.io.A_in := 0.U
   Add.io.B_in := 0.U
-  Addlow_16.io.A_in := 0.U
-  Addlow_16.io.B_in := 0.U
-  Addup_16.io.A_in := 0.U
-  Addup_16.io.B_in := 0.U
 
     switch(io.ALU_SEL) {
-      is(AluOP.ADD32) {
+      is(AluOP.ADD_UW) {
 
-        Add.io.A_in := A_32
-        Add.io.B_in := B_32
+        Add.io.A_in := zero_extended_index
+        Add.io.B_in := base
 
-       result_32 := Add.io.sum
+        result := Add.io.sum
       }
 
-      is(AluOP.SUB32) {
-
-        two_32.io.B_in := B_32
-
-        Add.io.A_in := A_32
-        Add.io.B_in := two_32.io.B_out
-
-       result_32 := Add.io.sum
-      }
-
-      is(AluOP.ADD16) {
-
-        Addlow_16.io.A_in := Alow_16
-        Addlow_16.io.B_in := Blow_16
-        resultlow_16  := Addlow_16.io.sum
-
-        Addup_16.io.A_in := Aup_16
-        Addup_16.io.B_in := Bup_16
-        resultup_16  := Addup_16.io.sum
-
-        result_32 := Cat(resultup_16,resultlow_16).asSInt
-      }
-
-      is(AluOP.SUB16) {
-
-        twolow_16.io.B_in := Blow_16
-
-        Addlow_16.io.A_in := Alow_16
-        Addlow_16.io.B_in := twolow_16.io.B_out
-        resultlow_16  := Addlow_16.io.sum
-
-        twoup_16.io.B_in := Bup_16
-
-        Addup_16.io.A_in := Aup_16
-        Addup_16.io.B_in := twoup_16.io.B_out
-        resultup_16  := Addup_16.io.sum
-
-       result_32 := Cat(resultup_16,resultlow_16).asSInt
-      }
-
-      is(AluOP.ADSUBC16) {
-
-        twolow_16.io.B_in := Bup_16
-
-        Addlow_16.io.A_in := Alow_16
-        Addlow_16.io.B_in := twolow_16.io.B_out
-        resultlow_16  := Addlow_16.io.sum
-
-        Addup_16.io.A_in := Aup_16
-        Addup_16.io.B_in := Blow_16
-        resultup_16  := Addup_16.io.sum
-
-        result_32 := Cat(resultup_16,resultlow_16).asSInt
-      }
-
-      is(AluOP.SUBADC16) {
-
-        Addlow_16.io.A_in := Alow_16
-        Addlow_16.io.B_in := Bup_16
-        resultlow_16  := Addlow_16.io.sum
-
-        twoup_16.io.B_in := Blow_16
-
-        Addup_16.io.A_in := Aup_16
-        Addup_16.io.B_in := twoup_16.io.B_out
-        resultup_16  := Addup_16.io.sum
-
-        result_32 := Cat(resultup_16,resultlow_16).asSInt
-      }
+     // is(AluOP.SH1ADD) {
+     // 
+     //   Shift.io.A_in := A
+     //   Shift.io.bits := 1.U
+     //   
+     //   Add.io.A_in := Shift.io.A_out
+     //   Add.io.B_in := base
+     //   result := Add.io.sum
+     // }
     }
 
-    io.result := result_32
+    io.result := result
 }
 
 
