@@ -79,6 +79,56 @@ class PExtALU extends Module {
         Add.io.B_in := base
         result := Add.io.sum
       }
+
+      is(AluOP.SH1ADD_UW) {
+      
+        Shift.io.A_in := zero_extended_index
+        Shift.io.bits := 1.U
+        
+        Add.io.A_in := Shift.io.A_out
+        Add.io.B_in := base
+        result := Add.io.sum
+      }
+
+      is(AluOP.SH2ADD) {
+      
+        Shift.io.A_in := A
+        Shift.io.bits := 2.U
+        
+        Add.io.A_in := Shift.io.A_out
+        Add.io.B_in := base
+        result := Add.io.sum
+      }
+
+      is(AluOP.SH2ADD_UW) {
+      
+        Shift.io.A_in := zero_extended_index
+        Shift.io.bits := 2.U
+        
+        Add.io.A_in := Shift.io.A_out
+        Add.io.B_in := base
+        result := Add.io.sum
+      }
+
+      is(AluOP.SH3ADD) {
+      
+        Shift.io.A_in := A
+        Shift.io.bits := 3.U
+        
+        Add.io.A_in := Shift.io.A_out
+        Add.io.B_in := base
+        result := Add.io.sum
+      }
+
+      is(AluOP.SH3ADD_UW) {
+      
+        Shift.io.A_in := zero_extended_index
+        Shift.io.bits := 3.U
+        
+        Add.io.A_in := Shift.io.A_out
+        Add.io.B_in := base
+        result := Add.io.sum
+      }
     }
 
     io.result := result
