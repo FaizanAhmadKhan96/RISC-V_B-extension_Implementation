@@ -1,29 +1,5 @@
 [
   {
-    "class":"firrtl.transforms.DedupedResult",
-    "original":"~PExtALU|TwosComplement_1",
-    "duplicate":"~PExtALU|PExtALU/twolow_16:TwosComplement_1",
-    "index":0.16666666666666666
-  },
-  {
-    "class":"firrtl.transforms.DedupedResult",
-    "original":"~PExtALU|TwosComplement_2",
-    "duplicate":"~PExtALU|PExtALU/twoup_16:TwosComplement_1",
-    "index":0.3333333333333333
-  },
-  {
-    "class":"firrtl.transforms.DedupedResult",
-    "original":"~PExtALU|Adder_1",
-    "duplicate":"~PExtALU|PExtALU/Addlow_16:Adder_1",
-    "index":0.6666666666666666
-  },
-  {
-    "class":"firrtl.transforms.DedupedResult",
-    "original":"~PExtALU|Adder_2",
-    "duplicate":"~PExtALU|PExtALU/Addup_16:Adder_1",
-    "index":0.8333333333333334
-  },
-  {
     "class":"firrtl.EmitCircuitAnnotation",
     "emitter":"firrtl.VerilogEmitter"
   },
@@ -31,18 +7,32 @@
     "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
     "typeName":"ALUType.AluOP",
     "definition":{
-      "SUB32":1,
-      "ADD32":0,
-      "SUBADC16":5,
-      "ADSUBC16":4,
-      "ADD16":2,
-      "SUB16":3
+      "ORN":4,
+      "SH1ADD":0,
+      "CLZ":6,
+      "XOR":5,
+      "ANDN":3,
+      "SH3ADD":2,
+      "SH2ADD":1
     }
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
     "target":"PExtALU.PExtALU.io_ALU_SEL",
     "enumTypeName":"ALUType.AluOP"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
+    "typeName":"ExtensionType.Extension",
+    "definition":{
+      "Zba":0,
+      "Zbb":1
+    }
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"PExtALU.PExtALU.io_EXT_SEL",
+    "enumTypeName":"ExtensionType.Extension"
   },
   {
     "class":"firrtl.transforms.BlackBoxTargetDirAnno",
