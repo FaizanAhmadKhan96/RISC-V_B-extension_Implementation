@@ -7,13 +7,36 @@
     "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
     "typeName":"ALUType.AluOP",
     "definition":{
+      "ORCB":19,
       "ORN":4,
-      "SH1ADD":0,
       "CLZ":6,
-      "XOR":5,
+      "BCLR":22,
+      "CPOP":8,
+      "SEXTH":14,
+      "BEXTI":25,
+      "SEXTB":13,
+      "MINU":12,
+      "ROL":16,
       "ANDN":3,
+      "BINV":26,
+      "SH1ADD":0,
+      "BSET":28,
+      "BSETI":29,
+      "MIN":11,
+      "ROR":17,
+      "ZEXTH":15,
+      "MAXU":10,
+      "BEXT":24,
+      "XOR":5,
+      "REV8":20,
+      "BINVI":27,
+      "BCLRI":23,
+      "CLMUL":21,
+      "CTZ":7,
       "SH3ADD":2,
-      "SH2ADD":1
+      "SH2ADD":1,
+      "RORI":18,
+      "MAX":9
     }
   },
   {
@@ -26,7 +49,9 @@
     "typeName":"ExtensionType.Extension",
     "definition":{
       "Zba":0,
-      "Zbb":1
+      "Zbb":1,
+      "Zbc":2,
+      "Zbs":3
     }
   },
   {

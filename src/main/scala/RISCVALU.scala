@@ -285,36 +285,36 @@ class Rev8(N: Int) extends Module {
 }
 
 //Implementing the CLMUL (carry-less multiply, low-part) instruction
-class Clmul(N: Int) extends Module {
-  val io = IO(new Bundle {
-    val A_in = Input(UInt(N.W))  
-    val B_in = Input(UInt(N.W))  
-    val C_out = Output(UInt(N.W)) 
-  })
-
-  // Temporary output register
-  val result = RegInit(0.U(N.W))
-
-  //val result = Wire(UInt(N.W))
-  //result := 0.U
-
-  // Iterate over each bit of B_in (rs2)
-  for (i <- 0 until N) {
-    val bitSet = (io.B_in >> i.U) & 1.U // Check if bit i of B_in is set
-    val partialProduct = Mux(bitSet === 1.U, io.A_in << i.U, 0.U) // Conditionally calculate the partial product
-    result := result ^ partialProduct // XOR the partial product with the current result
-  }
-
-  // Iterate over the bits of rs2
-  //for (i <- 0 until N) {
-  //  when((io.B_in >> i)(0) === 1.U) { // Check if bit `i` of rs2 is set
-  //    result := result ^ (io.A_in << i) // XOR with the shifted rs1_val
-  //  }
-  //}
-
-  io.C_out := result.asUInt // Assign the final result to the output
-
-}
+//class Clmul(N: Int) extends Module {
+//  val io = IO(new Bundle {
+//    val A_in = Input(UInt(N.W))  
+//    val B_in = Input(UInt(N.W))  
+//    val C_out = Output(UInt(N.W)) 
+//  })
+//
+//  // Temporary output register
+//  val result = RegInit(0.U(N.W))
+//
+//  //val result = Wire(UInt(N.W))
+//  //result := 0.U
+//
+//  // Iterate over each bit of B_in (rs2)
+//  for (i <- 0 until N) {
+//    val bitSet = (io.B_in >> i.U) & 1.U // Check if bit i of B_in is set
+//    val partialProduct = Mux(bitSet === 1.U, io.A_in << i.U, 0.U) // Conditionally calculate the partial product
+//    result := result ^ partialProduct // XOR the partial product with the current result
+//  }
+//
+//  // Iterate over the bits of rs2
+//  //for (i <- 0 until N) {
+//  //  when((io.B_in >> i)(0) === 1.U) { // Check if bit `i` of rs2 is set
+//  //    result := result ^ (io.A_in << i) // XOR with the shifted rs1_val
+//  //  }
+//  //}
+//
+//  io.C_out := result.asUInt // Assign the final result to the output
+//
+//}
 
 class PExtALU extends Module {
   val io = IO(new Bundle {
@@ -335,6 +335,8 @@ class PExtALU extends Module {
   val signed_RS2 = RS2.asSInt
 
   val RD = RegInit(0.U(32.W))
+
+  val index = RS2 & 31.U // Mask RS2 to 5 bits (valid range: 0-31)
 
   // Check for reserved encoding (shamt[5] = 1)
   val isReserved = RS2(5) === 1.U 
