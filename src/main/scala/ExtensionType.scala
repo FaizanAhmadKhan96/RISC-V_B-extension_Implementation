@@ -5,7 +5,7 @@ package ExtensionType {
 
   object Extension extends ChiselEnum {
 //    type Extension = Value
-    val Zba, Zbb , Zbc, Zbs = Value
+    val Zba, Zbb, Zbc, Zbs = Value
   }
 
 }

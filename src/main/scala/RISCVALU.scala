@@ -285,38 +285,64 @@ class Rev8(N: Int) extends Module {
 }
 
 //Implementing the CLMUL (carry-less multiply, low-part) instruction
-//class Clmul(N: Int) extends Module {
-//  val io = IO(new Bundle {
-//    val A_in = Input(UInt(N.W))  
-//    val B_in = Input(UInt(N.W))  
-//    val C_out = Output(UInt(N.W)) 
-//  })
-//
-//  // Temporary output register
-//  val result = RegInit(0.U(N.W))
-//
-//  //val result = Wire(UInt(N.W))
-//  //result := 0.U
-//
-//  // Iterate over each bit of B_in (rs2)
-//  for (i <- 0 until N) {
-//    val bitSet = (io.B_in >> i.U) & 1.U // Check if bit i of B_in is set
-//    val partialProduct = Mux(bitSet === 1.U, io.A_in << i.U, 0.U) // Conditionally calculate the partial product
-//    result := result ^ partialProduct // XOR the partial product with the current result
-//  }
-//
-//  // Iterate over the bits of rs2
-//  //for (i <- 0 until N) {
-//  //  when((io.B_in >> i)(0) === 1.U) { // Check if bit `i` of rs2 is set
-//  //    result := result ^ (io.A_in << i) // XOR with the shifted rs1_val
-//  //  }
-//  //}
-//
-//  io.C_out := result.asUInt // Assign the final result to the output
-//
-//}
+class Clmul(N: Int) extends Module {
+  val io = IO(new Bundle {
+    val A_in = Input(UInt(N.W))
+    val B_in = Input(UInt(N.W))
+    val C_out = Output(UInt(N.W))
+  })
 
-class PExtALU extends Module {
+  // Compute each shifted term and XOR them in parallel
+  val terms = (0 until N).map { i =>
+    val shifted = (io.A_in << i)(N-1, 0) // Shift and truncate to N bits
+    Mux(io.B_in(i), shifted, 0.U)        // Mask with rs2's bit
+  }
+
+  // XOR all terms together
+  io.C_out := terms.reduce(_ ^ _)
+}
+
+//Implementing the CLMULH (carry-less multiply, high-part) instruction
+class Clmulh(N: Int) extends Module {
+  val io = IO(new Bundle {
+    val A_in = Input(UInt(N.W))
+    val B_in = Input(UInt(N.W))
+    val C_out = Output(UInt(N.W))
+  })
+
+  // Generate terms for each bit position from 1 to N-1 (inclusive)
+  val terms = (1 until N).map { i =>
+    val bit = io.B_in(i) // Check if the i-th bit of B_in is set
+    val shiftAmt = (N - i).U // Compute the shift amount: N - i
+    val shifted = io.A_in >> shiftAmt // Right shift A_in by (N - i)
+    Mux(bit, shifted, 0.U) // Select shifted value or zero based on the bit
+  }
+
+  // XOR all generated terms to get the final result
+  io.C_out := terms.reduce(_ ^ _)
+}
+
+// Implementing CLMULR (carry-less multiply, reversed)
+class Clmulr(N: Int) extends Module {
+  val io = IO(new Bundle {
+    val A_in  = Input(UInt(N.W))
+    val B_in  = Input(UInt(N.W))
+    val C_out = Output(UInt(N.W))
+  })
+
+  // For each bit i in B_in, shift A_in right by (N - i - 1) bits,
+  // then use the bit from B_in as the mask. The terms are XORed together.
+  val terms = (0 until N).map { i =>
+    // Note: (N - i - 1).U gives the shift amount in UInt.
+    val shifted = io.A_in >> ((N - i - 1).U)
+    Mux(io.B_in(i), shifted, 0.U)
+  }
+
+  // XOR all the generated terms together to produce the final result.
+  io.C_out := terms.reduce(_ ^ _)
+}
+
+class BExtALU extends Module {
   val io = IO(new Bundle {
     val rs1 = Input(UInt(32.W))
     val rs2 = Input(UInt(32.W))
@@ -335,11 +361,6 @@ class PExtALU extends Module {
   val signed_RS2 = RS2.asSInt
 
   val RD = RegInit(0.U(32.W))
-
-  val index = RS2 & 31.U // Mask RS2 to 5 bits (valid range: 0-31)
-
-  // Check for reserved encoding (shamt[5] = 1)
-  val isReserved = RS2(5) === 1.U 
 
   val ShiftL = Module(new ShiftLeft(32))
 
@@ -379,10 +400,16 @@ class PExtALU extends Module {
 
   val REV8 = Module(new Rev8(32))
 
-  //val CLMUL = Module(new Clmul(32))
+  val CLMUL = Module(new Clmul(32))
+
+  val CLMULH = Module(new Clmulh(32))
+
+  val CLMULR = Module(new Clmulr(32))
 
   // Compute log2 of N to determine the number of shift bits which is 5 for 32 bits (Instructions ROL, ROR, RORI)
   val shamtBits = log2Ceil(32)
+
+  val shamt = RS2(shamtBits - 1, 0)
 
    // Initialize all module inputs to avoid uninitialized reference errors
  
@@ -434,8 +461,14 @@ class PExtALU extends Module {
 
   REV8.io.A_in := 0.U
 
-  //CLMUL.io.A_in := 0.U
-  //CLMUL.io.B_in := 0.U
+  CLMUL.io.A_in := 0.U
+  CLMUL.io.B_in := 0.U
+
+  CLMULH.io.A_in := 0.U
+  CLMULH.io.B_in := 0.U
+
+  CLMULR.io.A_in := 0.U
+  CLMULR.io.B_in := 0.U
 
       // Control logic for ALU operations based on EXT_SEL and ALU_SEL
   when(io.EXT_SEL === Extension.Zba) {
@@ -601,7 +634,7 @@ class PExtALU extends Module {
         RD := OR.io.or
       }
 
-      // ROL instruction is selected
+      // ROR instruction is selected
       is(AluOP.ROR) {
 
       // Extract the least significant shamtBits from B_in
@@ -622,31 +655,27 @@ class PExtALU extends Module {
         RD := OR.io.or
       }
 
-      // ROL instruction is selected
+      // RORI instruction is selected
       is(AluOP.RORI) {
 
-      // Extract the least significant shamtBits from B_in
+        // Extract the 5-bit shamt from RS2
         val shamt = RS2(shamtBits - 1, 0)
-
-        val leftShiftBits = 32.U - shamt
-        val rightShiftBits = shamt
-
+        // If shamt[4] is high, drop it and use only shamt(3,0).
+        // Otherwise use shamt as is.
+        val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
+        
+        val leftShiftBits = 32.U - realShamt
+        val rightShiftBits = realShamt
+        
         ShiftL.io.A_in := RS1
         ShiftL.io.bits := leftShiftBits
 
         ShiftR.io.A_in := RS1
         ShiftR.io.bits := rightShiftBits
-
+        
         OR.io.A_in := ShiftR.io.A_out
         OR.io.B_in := ShiftL.io.A_out
-
-         // Detect an illegal instruction (reserved encoding) for RV32
-        // val illegal = shamt(4) === 1.U//
-
-        //RD :=  Mux(illegal, 0.U,OR.io.or)
-
-        // TODO: "For RV32, the encodings corresponding to shamt[5]=1 are reserved."
-
+        
         RD := OR.io.or
       }
 
@@ -662,12 +691,36 @@ class PExtALU extends Module {
         RD := REV8.io.A_out
       }
 
-      //is(AluOP.CLMUL) { // Add a case for the CLMUL instruction
-      //CLMUL.io.A_in := RS1
-      //CLMUL.io.B_in := RS2
-      //RD := CLMUL.io.C_out
-    }
+   }  
   }
+
+   .elsewhen(io.EXT_SEL === Extension.Zbc) {
+      // Extension Zbc is selected
+      switch(io.ALU_SEL) {
+
+     // CLMUL instruction is selected
+     is(AluOP.CLMUL) { 
+     CLMUL.io.A_in := RS1
+     CLMUL.io.B_in := RS2
+     RD := CLMUL.io.C_out
+       }
+
+     // CLMULH instruction is selected
+     is(AluOP.CLMULH) { 
+     CLMULH.io.A_in := RS1
+     CLMULH.io.B_in := RS2
+     RD := CLMULH.io.C_out
+       }
+
+     // CLMULR instruction is selected
+     is(AluOP.CLMULR) { 
+     CLMULR.io.A_in := RS1
+     CLMULR.io.B_in := RS2
+     RD := CLMULR.io.C_out
+       }
+     
+     }
+    }
 
       .elsewhen(io.EXT_SEL === Extension.Zbs) {
        // Extension Zbs is selected
@@ -682,7 +735,7 @@ class PExtALU extends Module {
         //index := AND.io.and
 
         ShiftL.io.A_in := 1.U 
-        ShiftL.io.bits := index
+        ShiftL.io.bits := shamt
 
         Invert.io.A_in := ShiftL.io.A_out
 
@@ -694,26 +747,27 @@ class PExtALU extends Module {
 
       // BCLR instruction is selected
       is(AluOP.BCLRI) {
-          when(!isReserved) { // Proceed only if not a reserved encoding
+
+        // If shamt[4] is high, drop it and use only shamt(3,0).
+        // Otherwise use shamt as is.
+        val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
+        
           ShiftL.io.A_in := 1.U
-          ShiftL.io.bits := index
+          ShiftL.io.bits := realShamt
 
           Invert.io.A_in := ShiftL.io.A_out
 
           AND.io.A_in := RS1
           AND.io.B_in := Invert.io.A_out
           RD := AND.io.and
-        }.otherwise {
-          // Handle reserved encoding (e.g., set RD to 0)
-          RD := 0.U // Alternatively, raise an exception if needed
-        }
+      
       }
 
       // BEXT instruction is selected
       is(AluOP.BEXT) {
 
         ShiftR.io.A_in := RS1
-        ShiftR.io.bits := index 
+        ShiftR.io.bits := shamt 
 
         AND.io.A_in := ShiftR.io.A_out
         AND.io.B_in := 1.U
@@ -723,24 +777,54 @@ class PExtALU extends Module {
 
       // BEXTI instruction is selected
       is(AluOP.BEXTI) {
-          when(!isReserved) { // Proceed only if not a reserved encoding
+
+        // If shamt[4] is high, drop it and use only shamt(3,0).
+        // Otherwise use shamt as is.
+        val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
+        
           ShiftR.io.A_in := RS1
-          ShiftR.io.bits := index
+          ShiftR.io.bits := realShamt 
 
           AND.io.A_in := ShiftR.io.A_out
           AND.io.B_in := 1.U
           RD := AND.io.and
-        }.otherwise {
-          // Handle reserved encoding (e.g., set RD to 0)
-          RD := 0.U // Alternatively, raise an exception if needed
-        }
+        
       }
+
+      // BINV instruction is selected
+      is(AluOP.BINV) {
+
+        ShiftL.io.A_in := 1.U 
+        ShiftL.io.bits := shamt
+
+        XOR.io.A_in := RS1
+        XOR.io.B_in := ShiftL.io.A_out
+
+        RD := XOR.io.xor
+      }
+
+      // BINVI instruction is selected
+       is(AluOP.BINVI) {
+
+        // If shamt[4] is high, drop it and use only shamt(3,0).
+        // Otherwise use shamt as is.
+        val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
+           
+           ShiftL.io.A_in := 1.U 
+           ShiftL.io.bits := realShamt 
+    
+           XOR.io.A_in := RS1
+           XOR.io.B_in := ShiftL.io.A_out
+    
+           RD := XOR.io.xor
+         
+       }
 
       // BSET instruction is selected
       is(AluOP.BSET) {
 
         ShiftL.io.A_in := 1.U 
-        ShiftL.io.bits := index
+        ShiftL.io.bits := shamt
 
         OR.io.A_in := RS1
         OR.io.B_in := ShiftL.io.A_out
@@ -748,30 +832,32 @@ class PExtALU extends Module {
         RD := OR.io.or
       }
 
-      // BSETI instruction is selected
-      is(AluOP.BSETI) {
-          when(!isReserved) { // Proceed only if not a reserved encoding
-          ShiftL.io.A_in := 1.U 
-          ShiftL.io.bits := index
-  
-          OR.io.A_in := RS1
-          OR.io.B_in := ShiftL.io.A_out
-  
-          RD := OR.io.or
-        }.otherwise {
-          // Handle reserved encoding (e.g., set RD to 0)
-          RD := 0.U // Alternatively, raise an exception if needed
-        }
-      }
+       // BSETI instruction is selected
+       is(AluOP.BSETI) {
+
+        // If shamt[4] is high, drop it and use only shamt(3,0).
+        // Otherwise use shamt as is.
+        val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
+           
+           ShiftL.io.A_in := 1.U 
+           ShiftL.io.bits := realShamt 
+    
+           OR.io.A_in := RS1
+           OR.io.B_in := ShiftL.io.A_out
+    
+           RD := OR.io.or
+         
+       }
       
      }
     }
 
+  //val rdReg = RegNext(RD)
   io.rd := RD // Output the result
 
 } 
   
 
 object GenerateVerilog extends App {
-  (new chisel3.stage.ChiselStage).emitVerilog(new PExtALU(), Array("--target-dir", "generated"))
+  (new chisel3.stage.ChiselStage).emitVerilog(new BExtALU(), Array("--target-dir", "generated"))
 }

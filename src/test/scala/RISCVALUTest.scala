@@ -18,7 +18,7 @@ class RISCVALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers 
 
   it should "output correct results" in {
 //"DUT" should "pass" in {
-test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+test(new BExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
   val specialCases = Seq(
         (0xFFFFFFFFL, 0xFFFFFFFFL), // RS1 = all F, RS2 = all F
@@ -262,9 +262,9 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.io.rd.expect(expected_ZextHResult.asUInt)
 
          // Test ROL
-         val rolAmount = (RS2 & 0x1F).toInt // Extract the lower 5 bits for rotation
-         val expectedROLResult = ((RS1 << rolAmount) | (RS1 >> (32 - rolAmount))) & 0xFFFFFFFFL
-         println(s"ROL Test: rs1 = $RS1, rs2 = $RS2, rolAmount = $rolAmount, expected result = $expectedROLResult")
+         val shamtrol = (RS2 & 0x1F)     // Extract the lower 5 bits for rotation
+         val expectedROLResult = ((RS1 << shamtrol) | (RS1 >> (32 - shamtrol))) & 0xFFFFFFFFL
+         println(s"ROL Test: rs1 = $RS1, rs2 = $RS2, shamt = $shamtrol, expected result = $expectedROLResult")
      
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -276,9 +276,9 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.io.rd.expect(expectedROLResult.asUInt)
 
          // Test ROR
-         val rorAmount = (RS2 & 0x1F).toInt // Extract the lower 5 bits for rotation
-         val expectedRORResult = ((RS1 >> rorAmount) | (RS1 << (32 - rorAmount))) & 0xFFFFFFFFL
-         println(s"ROR Test: rs1 = $RS1, rs2 = $RS2, rorAmount = $rorAmount, expected result = $expectedRORResult")
+         val shamtror = (RS2 & 0x1F)    // Extract the lower 5 bits for rotation
+         val expectedRORResult = ((RS1 >> shamtror) | (RS1 << (32 - shamtror))) & 0xFFFFFFFFL
+         println(s"ROR Test: rs1 = $RS1, rs2 = $RS2, shamt = $shamtror, expected result = $expectedRORResult")
      
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -290,13 +290,11 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.io.rd.expect(expectedRORResult.asUInt)
 
          // Test RORI
-         val roriAmount = (RS2 & 0x1F).toInt // Extract the lower 5 bits for rotation
-         val expectedRORIResult = if ((rorAmount & 0x10L) != 0) { // Check MSB of byte is 1
-          0x00000000L // Error
-        } else {
-          ((RS1 >> roriAmount) | (RS1 << (32 - roriAmount))) & 0xFFFFFFFFL
-        }
-         println(s"RORI Test: rs1 = $RS1, rs2 = $RS2, roriAmount = $roriAmount, expected result = $expectedRORIResult")
+         val shamtrori = (RS2 & 0x1F)     // Extract the lower 5 bits for rotation
+         val realShamt = if (((shamtrori >> 4) & 1L) != 0L) { shamtrori & 0xFL } else { shamtrori }
+         val expectedRORIResult = ((RS1 >> realShamt.toInt) | (RS1 << (32 - realShamt.toInt))) & 0xFFFFFFFFL
+
+         println(s"RORI Test: rs1 = $RS1, rs2 = $RS2, shamt = $realShamt, expected result = $expectedRORIResult")
      
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -361,13 +359,56 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.io.rs2.poke(RS2.U)
          
          dut.io.ALU_SEL.poke(AluOP.CLMUL) 
-         dut.io.EXT_SEL.poke(Extension.Zbb) 
-         dut.clock.step(3)
+         dut.io.EXT_SEL.poke(Extension.Zbc) 
+         dut.clock.step()
          
          dut.io.rd.expect(expectedCLMULResult.asUInt)
 
+         // Test CLMULH (Carry-Less Multiply High-Part)
+         val expectedCLMULHResult = {
+           var result = 0L
+           for (i <- 1 to N) {
+             if (((RS2 >> i) & 1L) == 1) {
+               // XOR partial result: RS1 shifted right by (N - i)
+               // Ensure that we mask the result to 32 bits
+               result ^= (RS1 >> (N - i)) & 0xFFFFFFFFL
+             }
+           }
+           result
+         }
+         println(s"CLMULH Test: rs1 = $RS1, rs2 = $RS2, expected result = $expectedCLMULHResult")
+         
+         dut.io.rs1.poke(RS1.U)
+         dut.io.rs2.poke(RS2.U)
+         dut.io.ALU_SEL.poke(AluOP.CLMULH)
+         dut.io.EXT_SEL.poke(Extension.Zbc)
+         dut.clock.step()
+         dut.io.rd.expect(expectedCLMULHResult.asUInt)
+        
+         // Test CLMULR (Carry-Less Multiply Reversed)
+         val expectedCLMULRResult = {
+           
+           var result = 0L
+           // For each bit position i in RS2 from 0 to 31:
+           for (i <- 0 until 32) {
+             // If RS2[i] is set then XOR with RS1 shifted right by (32 - i - 1)
+             if (((RS2 >> i) & 1L) == 1L) {
+               result ^= (RS1 >> (32 - i - 1)) & 0xFFFFFFFFL
+             }
+           }
+           result
+         }
+         println(s"CLMULR Test: rs1 = $RS1, rs2 = $RS2, expected result = $expectedCLMULRResult")
+        
+         dut.io.rs1.poke(RS1.U)
+         dut.io.rs2.poke(RS2.U)
+         dut.io.ALU_SEL.poke(AluOP.CLMULR)
+         dut.io.EXT_SEL.poke(Extension.Zbc)
+         dut.clock.step()
+         dut.io.rd.expect(expectedCLMULRResult.U)
+
         // Test BCLR
-         val indexBCLR = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
+         val indexBCLR = (RS2 & 0x1F)    // Extract the lower 5 bits for index
          val expectedBCLRResult = RS1 & ~(1L << indexBCLR) & 0xFFFFFFFFL 
          println(s"BCLR Test: rs1 = $RS1, rs2 = $RS2, index = $indexBCLR, expected result = $expectedBCLRResult")
          
@@ -382,13 +423,10 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
          // Test BCLRI
 
-         val isReservedBCLRI = (RS2 & 0x20L) != 0 // 0x20L = 1 << 5, checking if the 6th bit is set
-
-         if (isReservedBCLRI) {
-
-         val indexBCLRI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index  
-         val expectedBCLRIResult = 0x00000000L 
-         println(s"BCLRI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBCLRI, expected result = $expectedBCLRIResult")
+         val indexBCLRI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
+         val realindexBCLRI = if (((indexBCLRI >> 4) & 1L) != 0L) { indexBCLRI & 0xFL } else { indexBCLRI }
+         val expectedBCLRIResult = RS1 & ~(1L << realindexBCLRI ) & 0xFFFFFFFFL 
+         println(s"BCLRI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBCLRI, expected result = $expectedBCLRIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -398,26 +436,9 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.clock.step()
          
          dut.io.rd.expect(expectedBCLRIResult.asUInt)
-         }
-
-         else {
-
-         val indexBCLRI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
-         val expectedBCLRIResult = RS1 & ~(1L << indexBCLRI) & 0xFFFFFFFFL 
-         println(s"BCLRI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBCLRI, expected result = $expectedBCLRIResult")
-         
-         dut.io.rs1.poke(RS1.U)
-         dut.io.rs2.poke(RS2.U)
-         dut.io.ALU_SEL.poke(AluOP.BCLRI) // Set ALU operation to BCLRI
-         dut.io.EXT_SEL.poke(Extension.Zbs) // BCLRI is part of Zbs extension
-         
-         dut.clock.step()
-         
-         dut.io.rd.expect(expectedBCLRIResult.asUInt)
-         }
 
          // Test BEXT
-         val indexBEXT = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
+         val indexBEXT = (RS2 & 0x1F)   // Extract the lower 5 bits for index
          val expectedBEXTResult = ((RS1 >> indexBEXT) & 1L) & 0xFFFFFFFFL 
          println(s"BEXT Test: rs1 = $RS1, rs2 = $RS2, index = $indexBEXT, expected result = $expectedBEXTResult")
          
@@ -432,13 +453,10 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
          // Test BEXTI
 
-         val isReservedBEXTI = (RS2 & 0x20L) != 0 // 0x20L = 1 << 5, checking if the 6th bit is set
-
-         if (isReservedBEXTI) {
-
-         val indexBEXTI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index  
-         val expectedBEXTIResult = 0x00000000L 
-         println(s"BEXTI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBEXTI, expected result = $expectedBEXTIResult")
+         val indexBEXTI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
+         val realindexBEXTI = if (((indexBEXTI >> 4) & 1L) != 0L) { indexBEXTI & 0xFL } else { indexBEXTI }
+         val expectedBEXTIResult = ((RS1 >> realindexBEXTI) & 1L) & 0xFFFFFFFFL 
+         println(s"BEXTI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBEXTI, expected result = $expectedBEXTIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -448,26 +466,39 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.clock.step()
          
          dut.io.rd.expect(expectedBEXTIResult.asUInt)
-         }
-
-         else {
-
-         val indexBEXTI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
-         val expectedBEXTIResult = ((RS1 >> indexBEXTI) & 1L) & 0xFFFFFFFFL 
-         println(s"BEXTI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBEXTI, expected result = $expectedBEXTIResult")
+         
+         // Test BINV
+         val indexBINV = (RS2 & 0x1F)    // Extract the lower 5 bits for index
+         val expectedBINVResult = RS1 ^ (1L << indexBINV) & 0xFFFFFFFFL 
+         println(s"BINV Test: rs1 = $RS1, rs2 = $RS2, index = $indexBINV, expected result = $expectedBINVResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
-         dut.io.ALU_SEL.poke(AluOP.BEXTI) // Set ALU operation to BEXTI
-         dut.io.EXT_SEL.poke(Extension.Zbs) // BEXTI is part of Zbs extension
+         dut.io.ALU_SEL.poke(AluOP.BINV) // Set ALU operation to BINV
+         dut.io.EXT_SEL.poke(Extension.Zbs) // BINV is part of Zbs extension
          
          dut.clock.step()
          
-         dut.io.rd.expect(expectedBEXTIResult.asUInt)
-         }
+         dut.io.rd.expect(expectedBINVResult.asUInt)
+
+         // Test BINVI
+
+         val indexBINVI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
+         val realindexBINVI = if (((indexBINVI >> 4) & 1L) != 0L) { indexBINVI & 0xFL } else { indexBINVI }
+         val expectedBINVIResult = RS1 ^ (1L << realindexBINVI) & 0xFFFFFFFFL  
+         println(s"BINVI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBINVI, expected result = $expectedBINVIResult")
          
+         dut.io.rs1.poke(RS1.U)
+         dut.io.rs2.poke(RS2.U)
+         dut.io.ALU_SEL.poke(AluOP.BINVI) // Set ALU operation to BINVI
+         dut.io.EXT_SEL.poke(Extension.Zbs) // BINVI is part of Zbs extension
+         
+         dut.clock.step()
+         
+         dut.io.rd.expect(expectedBINVIResult.asUInt)
+
           // Test BSET
-         val indexBSET = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
+         val indexBSET = (RS2 & 0x1F)    // Extract the lower 5 bits for index
          val expectedBSETResult = RS1 | (1L << indexBSET) & 0xFFFFFFFFL 
          println(s"BSET Test: rs1 = $RS1, rs2 = $RS2, index = $indexBSET, expected result = $expectedBSETResult")
          
@@ -482,13 +513,10 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
          // Test BSETI
 
-         val isReservedBSETI = (RS2 & 0x20L) != 0 // 0x20L = 1 << 5, checking if the 6th bit is set
-
-         if (isReservedBSETI) {
-
-         val indexBSETI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index  
-         val expectedBSETIResult = 0x00000000L 
-         println(s"BSETI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBSETI, expected result = $expectedBSETIResult")
+         val indexBSETI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
+         val realindexBSETI = if (((indexBSETI >> 4) & 1L) != 0L) { indexBSETI & 0xFL } else { indexBSETI }
+         val expectedBSETIResult = RS1 | (1L << realindexBSETI) & 0xFFFFFFFFL  
+         println(s"BSETI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBSETI, expected result = $expectedBSETIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -498,23 +526,6 @@ test(new PExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.clock.step()
          
          dut.io.rd.expect(expectedBSETIResult.asUInt)
-         }
-
-         else {
-
-         val indexBSETI = (RS2 & 0x1F)//.toInt // Extract the lower 5 bits for index
-         val expectedBSETIResult = RS1 | (1L << indexBSETI) & 0xFFFFFFFFL  
-         println(s"BSETI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBSETI, expected result = $expectedBSETIResult")
-         
-         dut.io.rs1.poke(RS1.U)
-         dut.io.rs2.poke(RS2.U)
-         dut.io.ALU_SEL.poke(AluOP.BSETI) // Set ALU operation to BSETI
-         dut.io.EXT_SEL.poke(Extension.Zbs) // Assuming BSETI is part of Zbs extension
-         
-         dut.clock.step()
-         
-         dut.io.rd.expect(expectedBSETIResult.asUInt)
-         }
 
       }
 
