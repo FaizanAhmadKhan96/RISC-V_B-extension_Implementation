@@ -293,8 +293,8 @@ class Clmul(N: Int) extends Module {
   })
 
   // Compute each shifted term and XOR them in parallel
-  val terms = (0 until N).map { i =>
-    val shifted = (io.A_in << i)(N-1, 0) // Shift and truncate to N bits
+  val terms = (0 until (N-1)).map { i =>
+    val shifted = (io.A_in << i)//(N-1, 0) // Shift and truncate to N bits
     Mux(io.B_in(i), shifted, 0.U)        // Mask with rs2's bit
   }
 
@@ -312,10 +312,8 @@ class Clmulh(N: Int) extends Module {
 
   // Generate terms for each bit position from 1 to N-1 (inclusive)
   val terms = (1 until N).map { i =>
-    val bit = io.B_in(i) // Check if the i-th bit of B_in is set
-    val shiftAmt = (N - i).U // Compute the shift amount: N - i
-    val shifted = io.A_in >> shiftAmt // Right shift A_in by (N - i)
-    Mux(bit, shifted, 0.U) // Select shifted value or zero based on the bit
+    val shifted = io.A_in >> (N - i).U // Right shift A_in by (N - i)
+    Mux(io.B_in(i), shifted, 0.U) // Select shifted value or zero based on the bit
   }
 
   // XOR all generated terms to get the final result
@@ -332,7 +330,7 @@ class Clmulr(N: Int) extends Module {
 
   // For each bit i in B_in, shift A_in right by (N - i - 1) bits,
   // then use the bit from B_in as the mask. The terms are XORed together.
-  val terms = (0 until N).map { i =>
+  val terms = (0 until (N-1)).map { i =>
     // Note: (N - i - 1).U gives the shift amount in UInt.
     val shifted = io.A_in >> ((N - i - 1).U)
     Mux(io.B_in(i), shifted, 0.U)

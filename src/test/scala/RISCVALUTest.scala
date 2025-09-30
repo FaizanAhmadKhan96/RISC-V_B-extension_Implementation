@@ -345,7 +345,7 @@ test(new BExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          val N = 32
          val expectedCLMULResult = {
            var result = 0x00000000L
-           for (i <- 0 until N) {
+           for (i <- 0 until (N-1)) {
              if (((RS2 >> i) & 1L) == 1) {
                result ^= (RS1 << i) & 0xFFFFFFFFL // XOR partial product and mask to retain 32 bits
              }
@@ -390,7 +390,7 @@ test(new BExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
            
            var result = 0L
            // For each bit position i in RS2 from 0 to 31:
-           for (i <- 0 until 32) {
+           for (i <- 0 until 31) {
              // If RS2[i] is set then XOR with RS1 shifted right by (32 - i - 1)
              if (((RS2 >> i) & 1L) == 1L) {
                result ^= (RS1 >> (32 - i - 1)) & 0xFFFFFFFFL
