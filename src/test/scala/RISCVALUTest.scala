@@ -390,10 +390,10 @@ test(new BExtALU ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
            
            var result = 0L
            // For each bit position i in RS2 from 0 to 31:
-           for (i <- 0 until 31) {
+           for (i <- 0 until (N-1)) {
              // If RS2[i] is set then XOR with RS1 shifted right by (32 - i - 1)
              if (((RS2 >> i) & 1L) == 1L) {
-               result ^= (RS1 >> (32 - i - 1)) & 0xFFFFFFFFL
+               result ^= (RS1 >> (N - i - 1)) & 0xFFFFFFFFL
              }
            }
            result
