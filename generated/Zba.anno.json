@@ -1,0 +1,33 @@
+[
+  {
+    "class":"firrtl.EmitCircuitAnnotation",
+    "emitter":"firrtl.VerilogEmitter"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
+    "typeName":"ZbaInstr.ZbaOP",
+    "definition":{
+      "SH1ADD":0,
+      "SH2ADD":1,
+      "SH3ADD":2
+    }
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Zba.Zba.io_INSTR_SEL",
+    "enumTypeName":"ZbaInstr.ZbaOP"
+  },
+  {
+    "class":"firrtl.transforms.BlackBoxTargetDirAnno",
+    "targetDir":"generated"
+  },
+  {
+    "class":"firrtl.transforms.CombinationalPath",
+    "sink":"~Zba|Zba>io_rd",
+    "sources":[
+      "~Zba|Zba>io_INSTR_SEL",
+      "~Zba|Zba>io_rs2",
+      "~Zba|Zba>io_rs1"
+    ]
+  }
+]
