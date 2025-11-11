@@ -142,12 +142,9 @@ class Zbs extends Module {
       rd := AND.io.and
     }
     is(ZbsOP.BCLRI) {
-      // If shamt[4] is high, drop it and use only shamt(3,0).
-      // Otherwise use shamt as is.
-      val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
         
       ShiftL.io.A_in := 1.U
-      ShiftL.io.bits := realShamt
+      ShiftL.io.bits := shamt
 
       Invert.io.A_in := ShiftL.io.A_out
 
@@ -165,12 +162,9 @@ class Zbs extends Module {
       rd := AND.io.and
     }
     is(ZbsOP.BEXTI) {
-      // If shamt[4] is high, drop it and use only shamt(3,0).
-      // Otherwise use shamt as is.
-      val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
         
       ShiftR.io.A_in := RS1
-      ShiftR.io.bits := realShamt 
+      ShiftR.io.bits := shamt 
 
       AND.io.A_in := ShiftR.io.A_out
       AND.io.B_in := 1.U
@@ -186,12 +180,9 @@ class Zbs extends Module {
       rd := XOR.io.xor
     }
     is(ZbsOP.BINVI) {
-      // If shamt[4] is high, drop it and use only shamt(3,0).
-      // Otherwise use shamt as is.
-      val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
            
       ShiftL.io.A_in := 1.U 
-      ShiftL.io.bits := realShamt 
+      ShiftL.io.bits := shamt 
     
       XOR.io.A_in := RS1
       XOR.io.B_in := ShiftL.io.A_out
@@ -208,12 +199,9 @@ class Zbs extends Module {
       rd := OR.io.or
     }
     is(ZbsOP.BSETI) {
-      // If shamt[4] is high, drop it and use only shamt(3,0).
-      // Otherwise use shamt as is.
-      val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
            
       ShiftL.io.A_in := 1.U 
-      ShiftL.io.bits := realShamt 
+      ShiftL.io.bits := shamt 
     
       OR.io.A_in := RS1
       OR.io.B_in := ShiftL.io.A_out

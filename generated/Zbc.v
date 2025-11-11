@@ -64,6 +64,8 @@ module Clmul(
   wire [60:0] terms_29 = io_B_in[29] ? terms_shifted_29 : 61'h0; // @[ZbcExt.scala 19:8]
   wire [61:0] terms_shifted_30 = {io_A_in, 30'h0}; // @[ZbcExt.scala 18:28]
   wire [61:0] terms_30 = io_B_in[30] ? terms_shifted_30 : 62'h0; // @[ZbcExt.scala 19:8]
+  wire [62:0] terms_shifted_31 = {io_A_in, 31'h0}; // @[ZbcExt.scala 18:28]
+  wire [62:0] terms_31 = io_B_in[31] ? terms_shifted_31 : 63'h0; // @[ZbcExt.scala 19:8]
   wire [32:0] _GEN_0 = {{1'd0}, terms_0}; // @[ZbcExt.scala 23:30]
   wire [32:0] _io_C_out_T = _GEN_0 ^ terms_1; // @[ZbcExt.scala 23:30]
   wire [33:0] _GEN_1 = {{1'd0}, _io_C_out_T}; // @[ZbcExt.scala 23:30]
@@ -124,7 +126,9 @@ module Clmul(
   wire [60:0] _io_C_out_T_28 = _GEN_28 ^ terms_29; // @[ZbcExt.scala 23:30]
   wire [61:0] _GEN_29 = {{1'd0}, _io_C_out_T_28}; // @[ZbcExt.scala 23:30]
   wire [61:0] _io_C_out_T_29 = _GEN_29 ^ terms_30; // @[ZbcExt.scala 23:30]
-  assign io_C_out = _io_C_out_T_29[31:0]; // @[ZbcExt.scala 23:12]
+  wire [62:0] _GEN_30 = {{1'd0}, _io_C_out_T_29}; // @[ZbcExt.scala 23:30]
+  wire [62:0] _io_C_out_T_30 = _GEN_30 ^ terms_31; // @[ZbcExt.scala 23:30]
+  assign io_C_out = _io_C_out_T_30[31:0]; // @[ZbcExt.scala 23:12]
 endmodule
 module Clmulh(
   input  [31:0] io_A_in,

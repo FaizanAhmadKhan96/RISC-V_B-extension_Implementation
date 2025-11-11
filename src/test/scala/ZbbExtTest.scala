@@ -21,7 +21,7 @@ test(new Zbb ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
   val specialCases = Seq(
         (0xFFFFFFFFL, 0xFFFFFFFFL), // RS1 = all F, RS2 = all F
         (0x00000000L, 0x00000000L), // RS1 = all 0, RS2 = all 0
-        (0x00000001L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
+        (0x00000000L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
         (0xFFFFFFFFL, 0x00000000L)  // RS1 = all F, RS2 = all 0
       )
 
@@ -232,10 +232,9 @@ test(new Zbb ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
          // Test RORI
          val shamtrori = (RS2 & 0x1F)     // Extract the lower 5 bits for rotation
-         val realShamt = if (((shamtrori >> 4) & 1L) != 0L) { shamtrori & 0xFL } else { shamtrori }
-         val expectedRORIResult = ((RS1 >> realShamt.toInt) | (RS1 << (32 - realShamt.toInt))) & 0xFFFFFFFFL
+         val expectedRORIResult = ((RS1 >> shamtrori.toInt) | (RS1 << (32 - shamtrori.toInt))) & 0xFFFFFFFFL
 
-         println(s"RORI Test: rs1 = $RS1, rs2 = $RS2, shamt = $realShamt, expected result = $expectedRORIResult")
+         println(s"RORI Test: rs1 = $RS1, rs2 = $RS2, shamt = $shamtrori, expected result = $expectedRORIResult")
      
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)

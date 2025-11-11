@@ -97,6 +97,9 @@ circuit Zbc :
     node terms_shifted_30 = shl(io.A_in, 30) @[ZbcExt.scala 18:28]
     node _terms_T_30 = bits(io.B_in, 30, 30) @[ZbcExt.scala 19:16]
     node terms_30 = mux(_terms_T_30, terms_shifted_30, UInt<1>("h0")) @[ZbcExt.scala 19:8]
+    node terms_shifted_31 = shl(io.A_in, 31) @[ZbcExt.scala 18:28]
+    node _terms_T_31 = bits(io.B_in, 31, 31) @[ZbcExt.scala 19:16]
+    node terms_31 = mux(_terms_T_31, terms_shifted_31, UInt<1>("h0")) @[ZbcExt.scala 19:8]
     node _io_C_out_T = xor(terms_0, terms_1) @[ZbcExt.scala 23:30]
     node _io_C_out_T_1 = xor(_io_C_out_T, terms_2) @[ZbcExt.scala 23:30]
     node _io_C_out_T_2 = xor(_io_C_out_T_1, terms_3) @[ZbcExt.scala 23:30]
@@ -127,7 +130,8 @@ circuit Zbc :
     node _io_C_out_T_27 = xor(_io_C_out_T_26, terms_28) @[ZbcExt.scala 23:30]
     node _io_C_out_T_28 = xor(_io_C_out_T_27, terms_29) @[ZbcExt.scala 23:30]
     node _io_C_out_T_29 = xor(_io_C_out_T_28, terms_30) @[ZbcExt.scala 23:30]
-    io.C_out <= _io_C_out_T_29 @[ZbcExt.scala 23:12]
+    node _io_C_out_T_30 = xor(_io_C_out_T_29, terms_31) @[ZbcExt.scala 23:30]
+    io.C_out <= _io_C_out_T_30 @[ZbcExt.scala 23:12]
 
   module Clmulh :
     input clock : Clock

@@ -21,7 +21,7 @@ test(new Zbc ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
   val specialCases = Seq(
         (0xFFFFFFFFL, 0xFFFFFFFFL), // RS1 = all F, RS2 = all F
         (0x00000000L, 0x00000000L), // RS1 = all 0, RS2 = all 0
-        (0x00000001L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
+        (0x00000000L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
         (0xFFFFFFFFL, 0x00000000L)  // RS1 = all F, RS2 = all 0
       )
 
@@ -30,7 +30,7 @@ test(new Zbc ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          val N = 32
          val expectedCLMULResult = {
            var result = 0x00000000L
-           for (i <- 0 until (N-1)) {
+           for (i <- 0 until N) {
              if (((RS2 >> i) & 1L) == 1) {
                result ^= (RS1 << i) & 0xFFFFFFFFL // XOR partial product and mask to retain 32 bits
              }

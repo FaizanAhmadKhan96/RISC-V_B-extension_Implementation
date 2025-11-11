@@ -382,6 +382,7 @@ class Zbb extends Module {
       AND.io.B_in := Invert.io.A_out
       rd := AND.io.and
     }
+    
     is(ZbbOP.ORN) {
       Invert.io.A_in := RS2
        
@@ -389,6 +390,7 @@ class Zbb extends Module {
       OR.io.B_in := Invert.io.A_out
       rd := OR.io.or
     }
+
     is(ZbbOP.XNOR) {
       XOR.io.A_in := RS1
       XOR.io.B_in := RS2
@@ -396,58 +398,67 @@ class Zbb extends Module {
       Invert.io.A_in := XOR.io.xor
       rd := Invert.io.A_out
     }
+
     is(ZbbOP.CLZ) {
       CLZ.io.A_in := RS1
       rd := CLZ.io.A_out
     }
+
     is(ZbbOP.CTZ) {
       CTZ.io.A_in := RS1
       rd := CTZ.io.A_out
     }
+
     is(ZbbOP.CPOP) {
       CPOP.io.A_in := RS1
       rd := CPOP.io.A_out
     }
+
     is(ZbbOP.MAX) {
       MAX.io.A_in := signed_RS1
       MAX.io.B_in := signed_RS2
 
       rd := MAX.io.max
     }
+
     is(ZbbOP.MAXU) {
       MAXU.io.A_in := RS1
       MAXU.io.B_in := RS2
 
       rd := MAXU.io.maxu
     }
+
     is(ZbbOP.MIN) {
       MIN.io.A_in := signed_RS1
       MIN.io.B_in := signed_RS2
 
       rd := MIN.io.min
     }
+
     is(ZbbOP.MINU) {
       MINU.io.A_in := RS1
       MINU.io.B_in := RS2
 
       rd := MINU.io.minu
     }
+
     is(ZbbOP.SEXTB) {
       SEXTB.io.A_in := RS1
       rd := SEXTB.io.A_out
     }
+
     is(ZbbOP.SEXTH) {
       SEXTH.io.A_in := RS1
       rd := SEXTH.io.A_out
     }
+
     is(ZbbOP.ZEXTH) {
       ZEXTH.io.A_in := RS1
       rd := ZEXTH.io.A_out
     }
-    is(ZbbOP.ROL) {
-      // Extract the least significant shamtBits from B_in
-      val shamt = RS2(shamtBits - 1, 0)
 
+    is(ZbbOP.ROL) {
+      
       val leftShiftBits = shamt
       val rightShiftBits = 32.U - shamt
 
@@ -462,9 +473,8 @@ class Zbb extends Module {
 
       rd := OR.io.or
     }
+
     is(ZbbOP.ROR) {
-      // Extract the least significant shamtBits from B_in
-      val shamt = RS2(shamtBits - 1, 0)
 
       val leftShiftBits = 32.U - shamt
       val rightShiftBits = shamt
@@ -480,15 +490,11 @@ class Zbb extends Module {
 
       rd := OR.io.or
     }
+
     is(ZbbOP.RORI) {
-      // Extract the 5-bit shamt from RS2
-      val shamt = RS2(shamtBits - 1, 0)
-      // If shamt[4] is high, drop it and use only shamt(3,0).
-      // Otherwise use shamt as is.
-      val realShamt = Mux(shamt(4) === 1.U, shamt(3,0), shamt)
-        
-      val leftShiftBits = 32.U - realShamt
-      val rightShiftBits = realShamt
+      
+      val leftShiftBits = 32.U - shamt
+      val rightShiftBits = shamt
         
       ShiftL.io.A_in := RS1
       ShiftL.io.bits := leftShiftBits
@@ -501,6 +507,7 @@ class Zbb extends Module {
         
       rd := OR.io.or
     }
+
     is(ZbbOP.ORCB) {
       ORCB.io.A_in := RS1
       rd := ORCB.io.A_out

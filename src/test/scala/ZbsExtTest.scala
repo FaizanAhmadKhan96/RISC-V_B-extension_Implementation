@@ -21,7 +21,7 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
   val specialCases = Seq(
         (0xFFFFFFFFL, 0xFFFFFFFFL), // RS1 = all F, RS2 = all F
         (0x00000000L, 0x00000000L), // RS1 = all 0, RS2 = all 0
-        (0x00000001L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
+        (0x00000000L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
         (0xFFFFFFFFL, 0x00000000L)  // RS1 = all F, RS2 = all 0
       )
 
@@ -42,9 +42,8 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          // Test BCLRI
 
          val indexBCLRI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
-         val realindexBCLRI = if (((indexBCLRI >> 4) & 1L) != 0L) { indexBCLRI & 0xFL } else { indexBCLRI }
-         val expectedBCLRIResult = RS1 & ~(1L << realindexBCLRI ) & 0xFFFFFFFFL 
-         println(s"BCLRI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBCLRI, expected result = $expectedBCLRIResult")
+         val expectedBCLRIResult = RS1 & ~(1L << indexBCLRI ) & 0xFFFFFFFFL 
+         println(s"BCLRI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBCLRI, expected result = $expectedBCLRIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -55,8 +54,8 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          dut.io.rd.expect(expectedBCLRIResult.asUInt)
 
          // Test BEXT
-         val indexBEXT = (RS2 & 0x1F)   // Extract the lower 5 bits for index
-         val expectedBEXTResult = ((RS1 >> indexBEXT) & 1L) & 0xFFFFFFFFL 
+         val indexBEXT = (RS2 & 0x1F)
+         val expectedBEXTResult = ((RS1 >> indexBEXT) & 1L) & 0xFFFFFFFFL    
          println(s"BEXT Test: rs1 = $RS1, rs2 = $RS2, index = $indexBEXT, expected result = $expectedBEXTResult")
          
          dut.io.rs1.poke(RS1.U)
@@ -70,9 +69,8 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          // Test BEXTI
 
          val indexBEXTI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
-         val realindexBEXTI = if (((indexBEXTI >> 4) & 1L) != 0L) { indexBEXTI & 0xFL } else { indexBEXTI }
-         val expectedBEXTIResult = ((RS1 >> realindexBEXTI) & 1L) & 0xFFFFFFFFL 
-         println(s"BEXTI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBEXTI, expected result = $expectedBEXTIResult")
+         val expectedBEXTIResult = ((RS1 >> indexBEXTI) & 1L) & 0xFFFFFFFFL 
+         println(s"BEXTI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBEXTI, expected result = $expectedBEXTIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -98,9 +96,8 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          // Test BINVI
 
          val indexBINVI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
-         val realindexBINVI = if (((indexBINVI >> 4) & 1L) != 0L) { indexBINVI & 0xFL } else { indexBINVI }
-         val expectedBINVIResult = RS1 ^ (1L << realindexBINVI) & 0xFFFFFFFFL  
-         println(s"BINVI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBINVI, expected result = $expectedBINVIResult")
+         val expectedBINVIResult = RS1 ^ (1L << indexBINVI) & 0xFFFFFFFFL  
+         println(s"BINVI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBINVI, expected result = $expectedBINVIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)
@@ -126,9 +123,8 @@ test(new Zbs ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
          // Test BSETI
 
          val indexBSETI = (RS2 & 0x1F)    // Extract the lower 5 bits for index
-         val realindexBSETI = if (((indexBSETI >> 4) & 1L) != 0L) { indexBSETI & 0xFL } else { indexBSETI }
-         val expectedBSETIResult = RS1 | (1L << realindexBSETI) & 0xFFFFFFFFL  
-         println(s"BSETI Test: rs1 = $RS1, rs2 = $RS2, index = $realindexBSETI, expected result = $expectedBSETIResult")
+         val expectedBSETIResult = RS1 | (1L << indexBSETI) & 0xFFFFFFFFL  
+         println(s"BSETI Test: rs1 = $RS1, rs2 = $RS2, index = $indexBSETI, expected result = $expectedBSETIResult")
          
          dut.io.rs1.poke(RS1.U)
          dut.io.rs2.poke(RS2.U)

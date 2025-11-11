@@ -7,4 +7,4 @@ package ZbbInstr {
     val ANDN, ORN, XNOR, CLZ, CTZ, CPOP, MAX, MAXU, MIN, MINU, SEXTB, SEXTH, ZEXTH, ROL, ROR, RORI, ORCB, REV8 = Value
   }
 
-}
+} 

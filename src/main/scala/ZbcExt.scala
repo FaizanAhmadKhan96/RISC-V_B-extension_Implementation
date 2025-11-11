@@ -14,7 +14,7 @@ class Clmul(N: Int) extends Module {
   })
 
   // Compute each shifted term and XOR them in parallel
-  val terms = (0 until (N-1)).map { i =>
+  val terms = (0 until N).map { i =>
     val shifted = (io.A_in << i)          // Shift and truncate to N bits
     Mux(io.B_in(i), shifted, 0.U)        // Mask with rs2's bit
   }

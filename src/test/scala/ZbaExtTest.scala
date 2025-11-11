@@ -22,7 +22,7 @@ test(new Zba ).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
   val specialCases = Seq(
         (0xFFFFFFFFL, 0xFFFFFFFFL), // RS1 = all F, RS2 = all F
         (0x00000000L, 0x00000000L), // RS1 = all 0, RS2 = all 0
-        (0x00000001L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
+        (0x00000000L, 0xFFFFFFFFL), // RS1 = all 0, RS2 = all F
         (0xFFFFFFFFL, 0x00000000L)  // RS1 = all F, RS2 = all 0
       )
 
